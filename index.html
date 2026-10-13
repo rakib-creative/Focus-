@@ -1,0 +1,1580 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Focus Flight</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Caveat:wght@500;700&family=DM+Mono:wght@400;500&family=Figtree:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@1,9..144,500&display=swap">
+<style>
+/* Layout: one centred column. Header with three tabs, then a stage that swaps between check-in, flight, final approach and boarding pass. Cards are paper objects with their own colours. */
+:root {
+  --bg: #e6f1fb; --bg-deep: #cfe3f6; --surface: #ffffff; --surface-2: #f1f7fd;
+  --ink: #1c2850; --ink-soft: #55648b; --line: #c6d9ee;
+  --coral: #ff7a6b; --butter: #ffd166; --mint: #87e0c3; --lilac: #c1b2ff; --on-accent: #1c2850;
+  --sky1: #86cdfb; --sky2: #e4f5ff; --cloud: #ffffff; --stars: 0; --glow: #ffd66b;
+  --st0: #e8584a; --st1: #1f9e83; --st2: #7a5cf0; --st3: #d98a0b;
+  --shadow: 0 12px 30px rgba(28, 40, 80, .13);
+  --f-display: "Bagel Fat One", "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "DM Mono", ui-monospace, Menlo, Consolas, monospace;
+  --f-hand: "Caveat", "Bradley Hand", "Segoe Script", cursive;
+  --f-serif: "Fraunces", Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1634; --bg-deep: #090e26; --surface: #18214b; --surface-2: #1f2a5c;
+    --ink: #eef0ff; --ink-soft: #a8b3de; --line: #323f7a;
+    --coral: #ff8c7d; --butter: #ffd77e; --mint: #78d9b8; --lilac: #b7a6ff;
+    --sky1: #1a2766; --sky2: #4a3d99; --cloud: #8c86d6; --stars: 1; --glow: #cbc4ff;
+  --st0: #ff8c7d; --st1: #5fd1b0; --st2: #b7a6ff; --st3: #ffc65c;
+    --shadow: 0 12px 30px rgba(0, 0, 0, .4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1634; --bg-deep: #090e26; --surface: #18214b; --surface-2: #1f2a5c;
+  --ink: #eef0ff; --ink-soft: #a8b3de; --line: #323f7a;
+  --coral: #ff8c7d; --butter: #ffd77e; --mint: #78d9b8; --lilac: #b7a6ff;
+  --sky1: #1a2766; --sky2: #4a3d99; --cloud: #8c86d6; --stars: 1; --glow: #cbc4ff;
+  --st0: #ff8c7d; --st1: #5fd1b0; --st2: #b7a6ff; --st3: #ffc65c;
+  --shadow: 0 12px 30px rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5;
+  padding-inline: 16px; padding-block: 0; position: relative; min-height: 100%;
+}
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: .005em; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; border-radius: 8px; }
+
+/* animated sky behind everything: drifting clouds, a breathing sun or moon, twinkling stars at night, a tiny plane */
+.sky { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: linear-gradient(180deg, var(--bg-deep), var(--bg) 72%); }
+.glow { position: absolute; right: 8vw; top: 6vh; width: min(34vw, 260px); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, var(--glow) 0, transparent 68%); opacity: .75; animation: breathe 9s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.14); opacity: 1; } }
+.sky { contain: layout paint; }
+.cloud { position: absolute; left: 0; animation: sail var(--dur, 100s) linear infinite; animation-delay: var(--delay, 0s); will-change: transform; backface-visibility: hidden; }
+.cloud svg { display: block; width: calc(180px * var(--s, 1)); height: auto; fill: var(--cloud); opacity: var(--o, .6); }
+@keyframes sail { from { transform: translate3d(-320px, 0, 0); } to { transform: translate3d(calc(100vw + 320px), 0, 0); } }
+.stars-bg { position: absolute; inset: 0; opacity: var(--stars); }
+.stl { position: absolute; left: 0; top: 0; width: 2px; height: 2px; border-radius: 50%; animation: twinkle 5s ease-in-out infinite; }
+.stl.b { animation-delay: -2.5s; animation-duration: 6.5s; }
+@keyframes twinkle { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.shoot { position: absolute; top: 12%; left: 72%; width: 120px; height: 2px; background: linear-gradient(90deg, #fff, transparent); opacity: 0; animation: shoot 13s linear infinite 5s; }
+@keyframes shoot { 0% { opacity: 0; transform: translate(0, 0) rotate(-30deg); } 2% { opacity: 1; } 9% { opacity: 0; transform: translate(-340px, 196px) rotate(-30deg); } 100% { opacity: 0; } }
+/* the plane starts off screen (fill-mode both), flies across, then waits off screen before the next pass */
+.bgplane { position: absolute; top: 15%; left: 0; width: 190px; opacity: .92; transform: translate3d(-300px, 16px, 0); animation: cruise 48s linear 1.2s infinite both; will-change: transform; }
+.bgplane svg { display: block; width: 100%; height: auto; animation: bob 3.4s ease-in-out infinite; }
+@keyframes cruise { 0% { transform: translate3d(-300px, 18px, 0); } 56%, 100% { transform: translate3d(calc(100vw + 300px), -80px, 0); } }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-2.4deg); } }
+.bgplane .bd { fill: #fff; stroke: var(--ink); stroke-width: 2.6; stroke-linejoin: round; }
+.bgplane .wf { fill: #d9e7f8; }
+.bgplane .cr { fill: var(--coral); }
+.bgplane .mn { fill: var(--mint); stroke: var(--ink); stroke-width: 1.6; }
+.app { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding-block: 18px 56px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 22px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-size: 1.7rem; }
+.brand svg { width: 38px; height: 38px; flex: none; }
+.tabs { display: flex; gap: 4px; padding: 4px; background: var(--surface); border: 2px solid var(--line); border-radius: 999px; }
+.tab { border: 0; background: transparent; color: var(--ink-soft); font-weight: 700; font-size: .92rem; padding: 8px 15px; border-radius: 999px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+
+.eyebrow { font-family: var(--f-mono); font-size: .76rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.lede { color: var(--ink-soft); max-width: 56ch; }
+.hero { display: grid; gap: 10px; margin-bottom: 22px; }
+.hero h1 { font-size: clamp(2rem, 7.2vw, 3.5rem); max-width: 16ch; }
+.hero.center { text-align: center; justify-items: center; }
+.hero h2 { font-size: clamp(1.7rem, 6vw, 2.6rem); }
+
+.panel { background: var(--surface); border: 2px solid var(--line); border-radius: 28px; padding: 22px; box-shadow: var(--shadow); min-width: 0; }
+.panel h2 { font-size: 1.5rem; margin-bottom: 12px; }
+.idle-grid, .fly-grid { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 820px) {
+  .idle-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+  .fly-grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
+}
+
+.field { display: grid; gap: 6px; margin-bottom: 16px; }
+.field label, .lbl { font-family: var(--f-mono); font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+input[type="text"], input[type="number"], select, textarea {
+  width: 100%; background: var(--surface-2); border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; min-width: 0;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--coral); outline-offset: 1px; }
+textarea { resize: vertical; min-height: 72px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { border: 2px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 8px 14px; font-weight: 700; cursor: pointer; font-family: var(--f-mono); font-size: .9rem; }
+.chip[aria-pressed="true"] { background: var(--butter); border-color: var(--ink); color: #1c2850; }
+.chips input { width: 92px; padding: 8px 12px; border-radius: 999px; font-family: var(--f-mono); }
+
+.btn { font-family: var(--f-display); font-size: 1.12rem; background: var(--coral); color: var(--on-accent); border: 2px solid var(--ink);
+  border-radius: 18px; padding: 12px 22px; box-shadow: 0 5px 0 var(--ink); cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.btn.ghost { background: var(--surface); color: var(--ink); }
+.btn.small { font-size: .98rem; padding: 9px 16px; border-radius: 14px; box-shadow: 0 4px 0 var(--ink); }
+.row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.row.center { justify-content: center; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border: 2px solid var(--line); border-radius: 18px; padding: 12px 14px; }
+.stat b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 1.9rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat span { font-family: var(--f-mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.tips { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--ink-soft); font-size: .93rem; }
+.tips li::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--mint); margin-right: 10px; }
+
+/* flight */
+.flight { text-align: center; }
+.route-line { display: flex; justify-content: center; align-items: center; gap: 12px; font-family: var(--f-mono); letter-spacing: .12em; }
+.code { background: var(--ink); color: var(--bg); border-radius: 10px; padding: 3px 10px; font-weight: 500; }
+.window { margin: 14px 0 6px; border: 3px solid var(--line); border-radius: 56px; overflow: hidden; background: var(--sky1); box-shadow: inset 0 0 0 8px var(--surface), inset 0 0 0 11px var(--line); }
+.window svg { display: block; width: 100%; height: auto; }
+.cl { animation: drift 70s linear infinite; }
+.cl2 { animation-duration: 95s; animation-delay: -40s; }
+.cl3 { animation-duration: 55s; animation-delay: -15s; }
+@keyframes drift { from { transform: translateX(-240px); } to { transform: translateX(720px); } }
+.stars { opacity: var(--stars); }
+.digits { font-family: var(--f-display); font-size: clamp(3.6rem, 17vw, 6.6rem); line-height: 1; display: flex; justify-content: center; margin: 8px 0 4px; }
+.digits .d { display: inline-block; width: .64em; text-align: center; }
+.digits .s { display: inline-block; width: .3em; text-align: center; color: var(--coral); }
+.goal-line { font-size: 1.1rem; overflow-wrap: anywhere; }
+.eta { color: var(--ink-soft); font-size: .93rem; }
+.paused .digits { opacity: .55; }
+
+.parked { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.parked li { background: var(--surface-2); border: 2px dashed var(--line); border-radius: 14px; padding: 7px 12px; font-size: .92rem; overflow-wrap: anywhere; }
+.note-add { display: flex; gap: 8px; }
+.note-add .btn { padding: 8px 14px; flex: none; }
+.approach { text-align: center; display: grid; gap: 12px; justify-items: center; }
+.approach h2 { font-size: clamp(1.7rem, 6vw, 2.4rem); margin: 0; }
+.goal-big { font-family: var(--f-hand); font-size: 2rem; line-height: 1.1; overflow-wrap: anywhere; max-width: 28ch; }
+
+/* boarding pass */
+.pass { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 230px; background: var(--surface); border: 2px solid var(--ink); border-radius: 26px;
+  box-shadow: 0 8px 0 var(--ink); cursor: pointer; overflow: hidden; text-align: left; max-width: 820px; margin: 0 auto; transition: transform .2s; }
+.pass:hover { transform: translateY(-3px) rotate(-.4deg); }
+.pass::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 14px; z-index: 1;
+  background: repeating-linear-gradient(135deg, var(--coral) 0 12px, var(--surface) 12px 20px, var(--sky1) 20px 32px, var(--surface) 32px 40px); }
+.pass-main { padding: 34px 26px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.pass-main > * { min-width: 0; }
+.pass-stub { padding: 34px 20px 20px; border-left: 3px dashed var(--ink-soft); display: grid; gap: 6px; align-content: start; text-align: center; background: var(--surface-2); min-width: 0; position: relative; }
+.tray { --tray: var(--surface-2); background: var(--tray); border: 2px solid var(--line); border-radius: 32px; padding: 26px 16px 34px; }
+.pass-stub::before, .pass-stub::after { content: ""; position: absolute; left: -13px; width: 24px; height: 24px; border-radius: 50%; background: var(--tray, var(--bg)); border: 2px solid var(--ink); }
+.pass-stub::before { top: -13px; } .pass-stub::after { bottom: -13px; }
+.pass-head { display: flex; justify-content: space-between; gap: 10px; font-family: var(--f-mono); font-size: .74rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }
+.pass-air { color: var(--coral); font-weight: 500; }
+.pass-route { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pass-route > div { min-width: 0; }
+.pass-route b { font-family: var(--f-display); font-weight: 400; font-size: clamp(1.6rem, 8.5vw, 2.4rem); line-height: 1; display: block; }
+.pass-route small, .k { display: block; font-family: var(--f-mono); font-size: .64rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 400; }
+.pass-plane { flex: 1; min-width: 40px; height: 24px; color: var(--ink); }
+.pf { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px 16px; }
+.pf .span2 { grid-column: span 2; }
+.pf b { font-family: var(--f-mono); font-weight: 500; font-size: .98rem; overflow-wrap: anywhere; }
+.pn { font-family: var(--f-display); font-size: 3rem; line-height: 1; color: var(--coral); }
+.pw { font-family: var(--f-mono); font-size: .86rem; letter-spacing: .14em; }
+.pass-stub svg.bar { width: 100%; height: 46px; margin-top: 6px; color: var(--ink); }
+.tap { margin-top: 8px; font-weight: 700; font-size: .85rem; background: var(--butter); color: #1c2850; border-radius: 999px; padding: 6px 10px; animation: pulse 1.8s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+@media (max-width: 640px) {
+  .tray { padding: 20px 10px 28px; }
+  .pass-main { padding: 32px 18px 20px; }
+  .pass-head { letter-spacing: .1em; flex-wrap: wrap; }
+  .pass { grid-template-columns: minmax(0, 1fr); }
+  .pass-stub { border-left: 0; border-top: 3px dashed var(--ink-soft); }
+  .pass-stub::before, .pass-stub::after { top: -13px; bottom: auto; }
+  .pass-stub::before { left: -13px; } .pass-stub::after { left: auto; right: -13px; }
+}
+
+/* passport + gallery */
+.stamps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; margin-top: 18px; }
+.stamp { --sc: var(--coral); border: 3px double var(--sc); color: var(--sc); background: var(--surface); border-radius: 18px; padding: 12px 10px; text-align: center; cursor: pointer;
+  transform: rotate(var(--rot, 0deg)); display: grid; gap: 2px; font-family: var(--f-mono); min-width: 0; }
+.stamp:hover { background: var(--surface-2); }
+.stamp .m { font-family: var(--f-display); font-size: 2rem; line-height: 1.05; }
+.stamp .t { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; overflow-wrap: anywhere; }
+.stamp.empty { border-style: dashed; color: var(--line); cursor: default; min-height: 98px; place-content: center; }
+.empty-note { margin-top: 14px; color: var(--ink-soft); }
+.gal { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 820px) { .gal { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
+.gal-info { display: grid; gap: 4px; margin: 10px 0 14px; }
+.gal-info b { font-family: var(--f-display); font-weight: 400; font-size: 1.6rem; }
+input[type="range"] { width: 100%; accent-color: var(--coral); }
+
+.overlay { position: fixed; inset: 0; z-index: 50; background: rgba(9, 14, 38, .7); display: grid; place-items: start center; padding: 18px 16px; overflow-y: auto; }
+.sheet { width: min(100%, 390px); display: grid; gap: 12px; margin-block: auto; }
+.sheet .field { background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 12px 14px; margin: 0; }
+.sheet .row { margin: 0; justify-content: center; }
+.tiny { color: #dfe4ff; font-size: .82rem; text-align: center; }
+.pop { animation: pop .55s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes pop { from { transform: scale(.6) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 70; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 700; z-index: 80; max-width: calc(100% - 32px); text-align: center; }
+.foot { margin-top: 40px; color: var(--ink-soft); font-size: .84rem; text-align: center; max-width: 60ch; margin-inline: auto; }
+.stage { display: grid; gap: 4px; }
+.cardimg { display: block; width: 100%; height: auto; border-radius: 12px; -webkit-touch-callout: default; user-select: auto; }
+.imgtip { background: var(--butter); color: #1c2850; border-radius: 14px; padding: 10px 14px; font-weight: 700; text-align: center; margin-bottom: 10px; }
+
+/* full screen focus mode: the flight panel covers the page */
+.focusmode .sky, .focusmode .top, .focusmode .foot, .focusmode .fly-grid > .panel:not(#flight-panel) { display: none; }
+.focusmode #flight-panel { position: fixed; inset: 0; z-index: 40; border: 0; border-radius: 0; box-shadow: none; background: var(--bg);
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; overflow-y: auto;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.focusmode .window { width: min(100%, 900px, calc(46vh * 2.5)); }
+.focusmode .digits { font-size: clamp(4.4rem, 22vw, 12rem); }
+.focusmode .goal-line { font-size: 1.3rem; }
+@media (prefers-reduced-motion: reduce) {
+  .cl, .tap, .pop, .glow, .stl, .shoot, .bgplane, .fc-stk { animation: none; }
+  .cloud { animation: none; transform: translateX(var(--x, 10vw)); }
+  .bgplane, .shoot { display: none; }
+  .pass, .btn { transition: none; }
+}
+
+/* Surprise cards: sized with container units so every card scales the same */
+.cardwrap { container-type: inline-size; width: 100%; filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .25)); }
+.fcard {
+  position: relative; aspect-ratio: 3 / 4.25; overflow: hidden; isolation: isolate; border-radius: 7cqw;
+  color: var(--c-ink); font-family: var(--f-body); font-size: 4.2cqw; line-height: 1.3; background: var(--c-plate);
+}
+.fc-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.fc-body { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 2.6cqw; padding: 7cqw 7cqw 6cqw; }
+.fc-top { display: flex; justify-content: space-between; gap: 2cqw; font-family: var(--f-mono); font-size: .72em; letter-spacing: .14em; text-transform: uppercase; color: var(--c-on); }
+.fc-title { font-family: var(--f-display); font-size: 2.05em; line-height: 1.02; color: var(--c-on); text-wrap: balance; }
+.fc-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2cqw; color: var(--c-on); min-width: 0; }
+.fc-name span { font-family: var(--f-mono); font-size: .66em; letter-spacing: .12em; text-transform: uppercase; }
+.fc-name b { font-family: var(--f-hand); font-weight: 700; font-size: 2.3em; line-height: 1; overflow-wrap: anywhere; }
+.fc-plate { position: relative; flex: 1; min-height: 0; background: var(--c-plate); color: var(--c-ink); border-radius: 5cqw; padding: 5cqw 5cqw 4cqw;
+  display: flex; flex-direction: column; gap: 2cqw; box-shadow: 0 1.2cqw 0 var(--c-edge); margin-top: 3cqw; }
+.fc-k { font-family: var(--f-mono); font-size: .62em; letter-spacing: .14em; text-transform: uppercase; color: var(--c-acc); font-weight: 500; filter: brightness(.82); }
+.fc-goal { font-weight: 700; font-size: 1.02em; line-height: 1.2; overflow-wrap: anywhere; padding-right: 11cqw; }
+.fc-q { margin: auto 0; font-size: calc(1.2em * var(--qs, 1)); line-height: 1.28; }
+.fc-q.q-serif { font-family: var(--f-serif); font-style: italic; font-weight: 500; }
+.fc-q.q-hand { font-family: var(--f-hand); font-weight: 700; font-size: calc(1.55em * var(--qs, 1)); line-height: 1.12; }
+.fc-q.q-sans { font-weight: 600; }
+.fc-by { display: flex; flex-direction: column; font-size: .78em; line-height: 1.25; }
+.fc-by b { font-weight: 700; }
+.fc-by span { opacity: .75; }
+.fc-foot { display: flex; justify-content: space-between; gap: 2cqw; font-family: var(--f-mono); font-size: .66em; letter-spacing: .06em; color: var(--c-on); }
+.fc-foot span:last-child { text-align: right; overflow-wrap: anywhere; }
+.fc-stk { position: absolute; right: 3cqw; top: -6.5cqw; width: 15cqw; height: 15cqw; transform: rotate(9deg);
+  filter: drop-shadow(0 0 .7cqw #fff) drop-shadow(0 0 .7cqw #fff) drop-shadow(0 .8cqw 0 rgba(0, 0, 0, .18)); }
+.fc-stk svg { width: 100%; height: 100%; display: block; }
+.fc-stk { animation: bob 3.6s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: rotate(5deg) translateY(0); } 50% { transform: rotate(13deg) translateY(-1.2cqw); } }
+
+/* frames */
+.f0 { border: 1.8cqw solid var(--c-edge); border-radius: 8cqw; }
+.f0::after { content: ""; position: absolute; inset: 1.8cqw; border: .5cqw dashed var(--c-on); border-radius: 5cqw; opacity: .5; pointer-events: none; }
+.f1 { --n: 4.6cqw; border-radius: 3cqw; padding: 0;
+  -webkit-mask: radial-gradient(circle var(--n) at 0 67%, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--n) at 100% 67%, #0000 97%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle var(--n) at 0 67%, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--n) at 100% 67%, #0000 97%, #000) right / 51% 100% no-repeat; }
+.f2 { border-radius: 50cqw 50cqw 7cqw 7cqw; border: 1.4cqw solid var(--c-edge); }
+.f2 .fc-body { padding-top: 15cqw; }
+.f2 .fc-top { justify-content: center; }
+.f2 .fc-title, .f2 .fc-name { text-align: center; justify-content: center; }
+.f3 { border: 3.6cqw solid var(--c-paper); border-radius: 2cqw; }
+.f4 { border-radius: 4cqw; transform: rotate(-1.4deg); }
+.f4::before, .f4::after { content: ""; position: absolute; width: 26cqw; height: 7cqw; background: rgba(255, 255, 255, .6); z-index: 3; border-left: .6cqw dashed rgba(0, 0, 0, .12); border-right: .6cqw dashed rgba(0, 0, 0, .12); }
+.f4::before { left: -6cqw; top: 3.5cqw; transform: rotate(-38deg); }
+.f4::after { right: -6cqw; top: 3.5cqw; transform: rotate(38deg); }
+
+</style>
+<div class="sky" aria-hidden="true">
+  <div class="glow"></div>
+  <div class="stars-bg" id="stars"><span class="shoot"></span></div>
+  <div id="clouds"></div>
+  <div class="bgplane"><svg viewBox="0 0 320 92" aria-hidden="true">
+    <defs>
+      <linearGradient id="bgpt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".85"/></linearGradient>
+      <clipPath id="bgpc"><path d="M-56 0Q-56 -14 -38 -14L24 -14Q48 -12 56 0Q48 12 24 14L-38 14Q-56 14 -56 0Z"/></clipPath>
+    </defs>
+    <path d="M0 46L176 38L176 54Z" fill="url(#bgpt)"/>
+    <g fill="#fff" opacity=".55"><circle cx="56" cy="46" r="4"/><circle cx="92" cy="46" r="6"/><circle cx="128" cy="45" r="8"/><circle cx="158" cy="45" r="9"/></g>
+    <g transform="translate(236 46)">
+      <path class="bd wf" d="M-6 -8L-28 -32L-14 -32L10 -8Z"/>
+      <path class="bd cr" d="M-50 -6L-62 -30L-46 -30L-30 -6Z"/>
+      <path class="bd" d="M-56 0Q-56 -14 -38 -14L24 -14Q48 -12 56 0Q48 12 24 14L-38 14Q-56 14 -56 0Z"/>
+      <rect class="cr" x="-60" y="4" width="120" height="12" clip-path="url(#bgpc)"/>
+      <path d="M-56 0Q-56 -14 -38 -14L24 -14Q48 -12 56 0Q48 12 24 14L-38 14Q-56 14 -56 0Z" fill="none" stroke="var(--ink)" stroke-width="2.6" stroke-linejoin="round"/>
+      <path class="mn" d="M30 -10Q44 -9 51 -2L30 -2Z"/>
+      <circle class="mn" cx="-28" cy="-3" r="3.6"/><circle class="mn" cx="-13" cy="-3" r="3.6"/><circle class="mn" cx="2" cy="-3" r="3.6"/><circle class="mn" cx="17" cy="-3" r="3.6"/>
+      <path class="bd" d="M-10 6L-34 34L-17 34L14 6Z"/>
+      <rect class="bd" x="-28" y="19" width="20" height="9" rx="4.5"/>
+    </g>
+  </svg></div>
+</div>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="var(--butter)" stroke="var(--ink)" stroke-width="2.5"/><g transform="rotate(-18 24 24)"><path d="M8 27L40 11L31 38L24 30Z" fill="#fff" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/><path d="M24 30L40 11L22 24Z" fill="var(--coral)" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/></g></svg>
+      <span>Focus Flight</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-fly" aria-selected="true" data-view="fly">Check-in</button>
+      <button class="tab" role="tab" id="tab-passport" aria-selected="false" data-view="passport">Passport</button>
+      <button class="tab" role="tab" id="tab-gallery" aria-selected="false" data-view="gallery">Card gallery</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="view-fly">
+      <!-- idle -->
+      <div id="s-idle" class="stage">
+        <div class="hero">
+          <p class="eyebrow">Gate open</p>
+          <h1>Where is your focus flying today?</h1>
+          <p class="lede">Name a target, pick a flight time and stay in your seat until you land. Reach your goal and you earn a boarding pass with a surprise card inside.</p>
+        </div>
+        <div class="idle-grid">
+          <form id="f-start" class="panel" autocomplete="off">
+            <div class="field"><label for="in-name">Passenger name</label><input id="in-name" type="text" maxlength="28" placeholder="The name for your card"></div>
+            <div class="field"><label for="in-goal">Destination (your target)</label><input id="in-goal" type="text" maxlength="90" placeholder="e.g. Finish the maths chapter" required></div>
+            <div class="field">
+              <span class="lbl" id="lbl-time">Flight time in minutes</span>
+              <div class="chips" id="chips" role="group" aria-labelledby="lbl-time">
+                <button type="button" class="chip" data-m="15">15</button>
+                <button type="button" class="chip" data-m="25">25</button>
+                <button type="button" class="chip" data-m="45">45</button>
+                <button type="button" class="chip" data-m="60">60</button>
+                <button type="button" class="chip" data-m="90">90</button>
+                <input id="in-min" type="number" min="1" max="240" value="25" aria-label="Custom minutes">
+              </div>
+            </div>
+            <button class="btn" type="submit">Board the flight</button>
+          </form>
+          <aside class="panel">
+            <h2>Today at the airport</h2>
+            <div class="stats">
+              <div class="stat"><b id="i-today">0</b><span>Flights</span></div>
+              <div class="stat"><b id="i-min">0</b><span>Minutes</span></div>
+              <div class="stat"><b id="i-streak">0</b><span>Day streak</span></div>
+            </div>
+            <ul class="tips">
+              <li>Phone face down, water within reach.</li>
+              <li>Park stray thoughts in the cabin notes and deal with them after landing.</li>
+              <li>Be honest at landing. The pass is only for goals you really reached.</li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+
+      <!-- in flight -->
+      <div id="s-flight" class="stage" hidden>
+        <div class="fly-grid">
+          <div class="panel flight" id="flight-panel">
+            <div class="route-line"><span class="code">NOW</span><span aria-hidden="true">- - -</span><span class="code" id="fl-to">WIN</span></div>
+            <div class="window">
+              <svg id="scene" viewBox="0 0 600 240" role="img" aria-label="Your plane flying towards your destination">
+                <defs><linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky1)"/><stop offset="1" style="stop-color:var(--sky2)"/></linearGradient></defs>
+                <rect width="600" height="240" fill="url(#skyg)"/>
+                <g class="stars" fill="#fff"><circle cx="60" cy="40" r="1.8"/><circle cx="150" cy="90" r="1.3"/><circle cx="260" cy="30" r="2"/><circle cx="340" cy="70" r="1.4"/><circle cx="430" cy="28" r="1.8"/><circle cx="520" cy="80" r="1.5"/><circle cx="575" cy="35" r="1.3"/></g>
+                <g class="cl" fill="var(--cloud)" opacity=".85"><circle cx="40" cy="60" r="16"/><circle cx="62" cy="52" r="22"/><circle cx="88" cy="62" r="15"/><rect x="40" y="60" width="48" height="17" rx="8"/></g>
+                <g class="cl cl2" fill="var(--cloud)" opacity=".7"><circle cx="40" cy="150" r="14"/><circle cx="60" cy="143" r="19"/><circle cx="84" cy="152" r="13"/><rect x="40" y="150" width="44" height="15" rx="7"/></g>
+                <g class="cl cl3" fill="var(--cloud)" opacity=".6"><circle cx="40" cy="205" r="12"/><circle cx="58" cy="199" r="16"/><circle cx="78" cy="207" r="11"/><rect x="40" y="205" width="38" height="13" rx="6"/></g>
+                <path id="track" d="M50 196 Q300 -40 550 196" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="4" stroke-dasharray="2 10" stroke-linecap="round"/>
+                <path id="trail" d="M50 196 Q300 -40 550 196" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" pathLength="1" stroke-dasharray="0 1"/>
+                <circle cx="50" cy="196" r="9" fill="var(--coral)" stroke="#1c2850" stroke-width="3"/>
+                <g transform="translate(550 196)"><path d="M0 0V-34" stroke="#1c2850" stroke-width="3" stroke-linecap="round"/><path d="M0 -34L22 -27L0 -19Z" fill="var(--butter)" stroke="#1c2850" stroke-width="3" stroke-linejoin="round"/><circle r="9" fill="var(--mint)" stroke="#1c2850" stroke-width="3"/></g>
+                <g id="plane"><g transform="scale(1.15)"><path d="M-22 -3L-31 -15L-24 -15L-14 -4Z" fill="var(--coral)" stroke="#1c2850" stroke-width="2.4" stroke-linejoin="round"/><path d="M-6 3L-16 20L-8 20L6 4Z" fill="#fff" stroke="#1c2850" stroke-width="2.4" stroke-linejoin="round"/><path d="M-26 0Q-26 -7 -14 -7L16 -7Q30 -5 32 0Q30 6 16 7L-14 7Q-26 7 -26 0Z" fill="#fff" stroke="#1c2850" stroke-width="2.4" stroke-linejoin="round"/><circle cx="14" cy="-1" r="2.6" fill="var(--mint)" stroke="#1c2850" stroke-width="1.6"/><circle cx="6" cy="-1" r="2.6" fill="var(--mint)" stroke="#1c2850" stroke-width="1.6"/><circle cx="-2" cy="-1" r="2.6" fill="var(--mint)" stroke="#1c2850" stroke-width="1.6"/></g></g>
+              </svg>
+            </div>
+            <div class="digits" id="digits" role="timer" aria-label="Time remaining"></div>
+            <p class="goal-line">Flying to <b id="fl-goal"></b></p>
+            <p class="eta">Landing around <b id="fl-eta"></b></p>
+            <div class="row" style="justify-content:center">
+              <button class="btn ghost" id="b-pause" type="button">Pause</button>
+              <button class="btn ghost" id="b-full" type="button">Full screen</button>
+              <button class="btn ghost" id="b-land" type="button">Land early</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Cabin</h2>
+            <div class="field"><label for="sel-sound">Cabin sound</label>
+              <select id="sel-sound"><option value="off">Silent cabin</option><option value="rain">Soft rain</option><option value="hum">Engine hum</option></select>
+            </div>
+            <div class="field" style="margin-bottom:0"><label for="in-note">Park a distracting thought</label>
+              <div class="note-add"><input id="in-note" type="text" maxlength="80" placeholder="Reply to Sam later"><button type="button" class="btn small" id="b-note">Park</button></div>
+            </div>
+            <ul class="parked" id="parked"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- approach -->
+      <div id="s-approach" class="stage" hidden>
+        <div class="panel approach">
+          <p class="eyebrow" id="ap-eye">Final approach</p>
+          <h2 id="ap-title">Time is up. Did you reach your destination?</h2>
+          <p class="goal-big" id="ap-goal"></p>
+          <ul class="parked" id="ap-notes" style="width:100%;max-width:420px"></ul>
+          <div class="row center">
+            <button class="btn" id="b-yes" type="button">Yes, I landed it</button>
+            <button class="btn ghost" id="b-more" type="button">Need 10 more minutes</button>
+            <button class="btn ghost" id="b-no" type="button">Not today</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- landed -->
+      <div id="s-landed" class="stage" hidden>
+        <div class="hero center">
+          <p class="eyebrow">Welcome to your destination</p>
+          <h2>Your boarding pass is ready</h2>
+          <p class="lede">Tap the pass to open your surprise card.</p>
+        </div>
+        <div id="pass-slot" class="tray"></div>
+        <div class="row center">
+          <button class="btn" id="b-open" type="button">Open surprise card</button>
+          <button class="btn ghost" id="b-layover" type="button">5-minute layover</button>
+          <button class="btn ghost" id="b-again" type="button">New flight</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-passport" hidden>
+      <div class="hero"><p class="eyebrow">Your logbook</p><h2>Passport</h2><p class="lede">Every landed flight earns a stamp. Tap a stamp to open its card again.</p></div>
+      <div class="panel">
+        <div class="stats">
+          <div class="stat"><b id="p-flights">0</b><span>Flights</span></div>
+          <div class="stat"><b id="p-hours">0</b><span>Hours</span></div>
+          <div class="stat"><b id="p-streak">0</b><span>Day streak</span></div>
+          <div class="stat"><b id="p-best">0</b><span>Longest, min</span></div>
+        </div>
+        <div class="stamps" id="stamps"></div>
+        <p class="empty-note" id="p-empty" hidden>No stamps yet. Land your first flight and it will appear here.</p>
+        <div class="row"><button class="btn ghost small" id="b-reset" type="button">Clear passport</button></div>
+      </div>
+    </section>
+
+    <section id="view-gallery" hidden>
+      <div class="hero"><p class="eyebrow">500 designs</p><h2>Card gallery</h2><p class="lede">Browse every card design. The one you earn is picked at random when you land, so you will not know which until you tap.</p></div>
+      <div class="gal">
+        <div id="gal-card"></div>
+        <div class="panel">
+          <div class="gal-info"><b id="gal-no">Design 1 of 500</b><span class="eyebrow" id="gal-desc"></span></div>
+          <label class="lbl" for="gal-range">Jump to a design</label>
+          <input id="gal-range" type="range" min="1" max="500" value="1">
+          <div class="row"><button class="btn ghost small" id="gal-prev" type="button">Previous</button><button class="btn ghost small" id="gal-next" type="button">Next</button><button class="btn small" id="gal-rand" type="button">Surprise me</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <p class="foot">Your passport is saved in this browser only. Quotes are widely attributed to the people shown, so check the original source before you cite one.</p>
+</div>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="Your surprise card" hidden>
+  <div class="sheet">
+    <div id="ov-card"></div>
+    <div class="field"><label for="in-name2">Name on the card</label><input id="in-name2" type="text" maxlength="28" placeholder="Write your name"></div>
+    <div class="row"><button class="btn small" id="ov-save" type="button">Save as image</button><button class="btn ghost small" id="ov-copy" type="button">Copy quote</button><button class="btn ghost small" id="ov-close" type="button">Close</button></div>
+    <p class="tiny" id="ov-note">Save the card as a PNG picture, or copy just the quote.</p>
+  </div>
+</div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* Focus Flight data: quotes, cute words, card palettes */
+const FF_QUOTES = [
+  ["Nothing in life is to be feared, it is only to be understood.", "Marie Curie", "Physicist"],
+  ["Imagination is more important than knowledge.", "Albert Einstein", "Physicist"],
+  ["The first principle is that you must not fool yourself.", "Richard Feynman", "Physicist"],
+  ["We are a way for the cosmos to know itself.", "Carl Sagan", "Astronomer"],
+  ["However difficult life may seem, there is always something you can do and succeed at.", "Stephen Hawking", "Cosmologist"],
+  ["If I have seen further, it is by standing on the shoulders of giants.", "Isaac Newton", "Mathematician"],
+  ["Genius is one percent inspiration and ninety-nine percent perspiration.", "Thomas Edison", "Inventor"],
+  ["The most difficult thing is the decision to act; the rest is merely tenacity.", "Amelia Earhart", "Aviator"],
+  ["That's one small step for man, one giant leap for mankind.", "Neil Armstrong", "Astronaut"],
+  ["All adventures, especially into new territory, are scary.", "Sally Ride", "Astronaut"],
+  ["Dream, dream, dream. Dreams transform into thoughts, and thoughts result in action.", "A. P. J. Abdul Kalam", "Scientist & President"],
+  ["Faith is the bird that feels the light and sings when the dawn is still dark.", "Rabindranath Tagore", "Poet & Nobel laureate"],
+  ["All human beings are entrepreneurs.", "Muhammad Yunus", "Economist & Nobel laureate"],
+  ["One child, one teacher, one book, one pen can change the world.", "Malala Yousafzai", "Nobel laureate"],
+  ["If you can't fly then run, if you can't run then walk, but whatever you do, you have to keep moving forward.", "Martin Luther King Jr.", "Civil rights leader"],
+  ["It always seems impossible until it's done.", "Nelson Mandela", "Statesman"],
+  ["Never give in, never, never, never, never.", "Winston Churchill", "Prime Minister"],
+  ["The future belongs to those who believe in the beauty of their dreams.", "Eleanor Roosevelt", "Stateswoman"],
+  ["I have learned over the years that when one's mind is made up, this diminishes fear.", "Rosa Parks", "Civil rights icon"],
+  ["Not all of us can do great things. But we can do small things with great love.", "Mother Teresa", "Humanitarian"],
+  ["What you do makes a difference, and you have to decide what kind of difference you want to make.", "Jane Goodall", "Primatologist"],
+  ["Success is a lousy teacher.", "Bill Gates", "Technologist"],
+  ["The only way to do great work is to love what you do.", "Steve Jobs", "Innovator"],
+  ["The biggest adventure you can take is to live the life of your dreams.", "Oprah Winfrey", "Broadcaster"],
+  ["All our dreams can come true, if we have the courage to pursue them.", "Walt Disney", "Animator"],
+  ["Whether you think you can, or you think you can't, you're right.", "Henry Ford", "Industrialist"],
+  ["Don't count the days, make the days count.", "Muhammad Ali", "Boxer"],
+  ["I've failed over and over and over again in my life. And that is why I succeed.", "Michael Jordan", "Basketball legend"],
+  ["I'd rather regret the risks that didn't work out than the chances I didn't take at all.", "Simone Biles", "Gymnast"],
+  ["Success is no accident. It is hard work, perseverance, learning, sacrifice and most of all, love of what you are doing.", "Pelé", "Footballer"],
+  ["You have to fight to reach your dream. You have to sacrifice and work hard for it.", "Lionel Messi", "Footballer"],
+  ["Everything negative, pressure, challenges, is all an opportunity for me to rise.", "Kobe Bryant", "Basketball legend"],
+  ["There's no way around hard work. Embrace it.", "Roger Federer", "Tennis champion"],
+  ["I don't think limits.", "Usain Bolt", "Sprinter"],
+  ["Be water, my friend.", "Bruce Lee", "Martial artist"],
+  ["Great things are done by a series of small things brought together.", "Vincent van Gogh", "Painter"],
+  ["Everything you can imagine is real.", "Pablo Picasso", "Painter"],
+  ["Feet, what do I need you for when I have wings to fly?", "Frida Kahlo", "Painter"],
+  ["A day without laughter is a day wasted.", "Charlie Chaplin", "Filmmaker"],
+  ["Nothing is impossible, the word itself says \"I'm possible\"!", "Audrey Hepburn", "Actress & humanitarian"],
+  ["Success isn't about how much money you make; it's about the difference you make in people's lives.", "Michelle Obama", "Author & advocate"],
+  ["A journey of a thousand miles begins with a single step.", "Lao Tzu", "Philosopher"],
+  ["It does not matter how slowly you go as long as you do not stop.", "Confucius", "Philosopher"],
+  ["Well begun is half done.", "Aristotle", "Philosopher"],
+  ["What you seek is seeking you.", "Rumi", "Poet"],
+  ["Nothing great was ever achieved without enthusiasm.", "Ralph Waldo Emerson", "Essayist"],
+  ["Go confidently in the direction of your dreams.", "Henry David Thoreau", "Naturalist"],
+  ["A goal without a plan is just a wish.", "Antoine de Saint-Exupéry", "Aviator & author"],
+  ["Be yourself; everyone else is already taken.", "Oscar Wilde", "Playwright"],
+  ["The secret of getting ahead is getting started.", "Mark Twain", "Humorist"],
+  ["We know what we are, but know not what we may be.", "William Shakespeare", "Playwright"],
+  ["Nothing will work unless you do.", "Maya Angelou", "Poet & author"],
+  ["Luck is what happens when preparation meets opportunity.", "Seneca", "Stoic philosopher"],
+  ["The present is theirs; the future, for which I really worked, is mine.", "Nikola Tesla", "Inventor"],
+  ["Learning never exhausts the mind.", "Leonardo da Vinci", "Polymath"],
+  ["Arise, awake, and stop not till the goal is reached.", "Swami Vivekananda", "Monk & philosopher"],
+  ["Alone we can do so little; together we can do so much.", "Helen Keller", "Author & activist"],
+  ["A champion is defined not by their wins but by how they can recover when they fall.", "Serena Williams", "Tennis champion"],
+  ["The most dangerous phrase in the language is, \"We've always done it this way.\"", "Grace Hopper", "Computer scientist"],
+  ["It's the little things citizens do. That's what will make the difference.", "Wangari Maathai", "Environmentalist & Nobel laureate"]
+];
+
+const FF_WORDS = ["MANGO","MOON","CLOUD","PEACH","COCOA","BISCUIT","PEBBLE","MOCHI","SUNNY","BUBBLE","COOKIE","DAISY","MAPLE","PIXEL","LEMON","OTTER","PANDA","TULIP","WAFFLE","JELLY","MINT","CLOVER","HONEY","BERRY","POPPY","SPARK","BREEZE","COMET","LATTE","NOODLE","PUDDING","SPROUT","ZEPHYR","FIREFLY","SESAME","OLIVE","PLUM","COCONUT","SUNBEAM","STARDUST","RIPPLE","CUPCAKE","KOALA","LLAMA","BUTTON","TOFFEE","GINGER","SKYLARK","APRICOT","WILLOW","CRUMPET","SORBET","DUMPLING","PEPPER","ACORN","PARCEL","LANTERN","MEADOW","SHERBET","MUFFIN","BLOSSOM","LOLLIPOP","PRALINE","SNOWDROP"];
+
+const FF_TITLES = ["You landed it!", "Mission complete", "Smooth landing", "Target reached", "Cleared for success", "Goal unlocked", "Welcome to your goal", "Right on time"];
+
+/* name, bg1, bg2, plate, ink, accent, accent2, edge, onBg, paper */
+const FF_PALETTES = [
+  ["Peach Fizz", "#ffd9c7", "#ffb5a3", "#fff6ef", "#5b2a3a", "#ff6f61", "#ffe3a3", "#ff6f61", "#5b2a3a", "#fffaf5"],
+  ["Mint Soda", "#c8f3e3", "#8fdcc9", "#f4fffb", "#17454a", "#2fb89a", "#fff1a8", "#2fb89a", "#17454a", "#fbfffd"],
+  ["Lilac Dusk", "#e3d7ff", "#bba7ff", "#faf7ff", "#3a2a73", "#7c5cff", "#ffd1e8", "#7c5cff", "#3a2a73", "#fdfbff"],
+  ["Butter Cloud", "#fff0b3", "#ffd978", "#fffcee", "#5a4300", "#ff9f1c", "#ffffff", "#ff9f1c", "#5a4300", "#fffdf4"],
+  ["Ocean Gum", "#bfe6ff", "#86c4f4", "#f3faff", "#12365f", "#1f7ae0", "#ffd5e1", "#1f7ae0", "#12365f", "#f9fcff"],
+  ["Cherry Pop", "#ffc9d6", "#ff9db6", "#fff3f7", "#6a1030", "#e6195a", "#fff0f4", "#e6195a", "#6a1030", "#fff9fb"],
+  ["Matcha Milk", "#dcebc3", "#b6d794", "#f9fdf1", "#2c4220", "#5f9b3a", "#fff6d6", "#5f9b3a", "#2c4220", "#fcfef7"],
+  ["Sunset Tea", "#ffd2a1", "#ff9d8a", "#fff5e8", "#5e2c14", "#e8590c", "#ffe9b8", "#e8590c", "#5e2c14", "#fffaf3"],
+  ["Berry Night", "#4a3b9a", "#2a2062", "#2f2670", "#f4efff", "#ff8ad8", "#ffd86b", "#ff8ad8", "#f4efff", "#3a2f80"],
+  ["Cocoa Cream", "#ead6c4", "#cfae94", "#fbf3ea", "#3f2515", "#a0522d", "#fff0dd", "#a0522d", "#3f2515", "#fdf8f2"]
+];
+
+const FF_PATTERNS = ["Polka", "Candy stripes", "Waves", "Stars", "Clouds", "Hearts", "Gingham", "Confetti", "Rings", "Sparkles"];
+const FF_FRAMES = ["Classic", "Ticket", "Arch", "Polaroid", "Washi tape"];
+
+/* Card generator: 10 palettes x 10 patterns x 5 frames = 500 designs */
+const FFCard = (function () {
+  const TOTAL = 500;
+  let uid = 0;
+
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function design(i) {
+    i = ((i % TOTAL) + TOTAL) % TOTAL;
+    return {
+      i: i,
+      pal: i % 10,
+      pat: Math.floor(i / 10) % 10,
+      frame: Math.floor(i / 100) % 5,
+      sticker: (i * 7 + 3) % 6,
+      qfont: Math.floor(i / 7) % 3,
+      title: (i * 5 + 1) % FF_TITLES.length
+    };
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function pattern(k, c, c2, R) {
+    switch (k) {
+      case 0:
+        return [24, 24, '<circle cx="6" cy="6" r="3" fill="' + c + '"/><circle cx="18" cy="18" r="3" fill="' + c + '"/>'];
+      case 1:
+        return [20, 20, '<path d="M-5 5L5 -5M0 20L20 0M15 25L25 15" stroke="' + c + '" stroke-width="5"/>'];
+      case 2:
+        return [40, 20, '<path d="M0 10Q10 0 20 10T40 10" fill="none" stroke="' + c + '" stroke-width="3.5" stroke-linecap="round"/>'];
+      case 3: {
+        const s = function (x, y) {
+          return '<path transform="translate(' + x + ' ' + y + ')" d="M0 -7L2 -2.3L7 -2.2L3.1 1L4.3 6L0 3.2L-4.3 6L-3.1 1L-7 -2.2L-2 -2.3Z" fill="' + c + '"/>';
+        };
+        return [36, 36, s(9, 9) + s(27, 27)];
+      }
+      case 4:
+        return [48, 40, '<g fill="' + c + '"><circle cx="12" cy="20" r="5"/><circle cx="19" cy="17" r="6.5"/><circle cx="26" cy="20" r="5"/><rect x="12" y="20" width="14" height="5"/></g>'];
+      case 5: {
+        const h = function (x, y) {
+          return '<path transform="translate(' + x + ' ' + y + ')" d="M10 17C2 11 3 5 7 5C9 5 10 7 10 7C10 7 11 5 13 5C17 5 18 11 10 17Z" fill="' + c + '"/>';
+        };
+        return [32, 32, h(-4, -4) + h(12, 12)];
+      }
+      case 6:
+        return [32, 32, '<rect width="16" height="16" fill="' + c + '"/><rect x="16" y="16" width="16" height="16" fill="' + c + '"/>'];
+      case 7: {
+        let g = "";
+        const cols = [c, c2, "#ffffff"];
+        for (let n = 0; n < 9; n++) {
+          const x = (R() * 56 + 2).toFixed(1), y = (R() * 56 + 2).toFixed(1), col = cols[n % 3];
+          g += n % 2
+            ? '<circle cx="' + x + '" cy="' + y + '" r="2.4" fill="' + col + '"/>'
+            : '<rect x="' + x + '" y="' + y + '" width="7" height="3" rx="1.5" fill="' + col + '" transform="rotate(' + Math.floor(R() * 180) + ' ' + x + ' ' + y + ')"/>';
+        }
+        return [60, 60, g];
+      }
+      case 8:
+        return [40, 40, '<circle cx="20" cy="20" r="14" fill="none" stroke="' + c + '" stroke-width="3"/><circle cx="20" cy="20" r="5" fill="' + c + '"/>'];
+      default: {
+        const sp = function (x, y) {
+          return '<path transform="translate(' + x + ' ' + y + ')" d="M10 0C11 6 14 9 20 10C14 11 11 14 10 20C9 14 6 11 0 10C6 9 9 6 10 0Z" fill="' + c + '"/>';
+        };
+        return [44, 44, sp(2, 2) + sp(24, 24)];
+      }
+    }
+  }
+
+  function sticker(k, p) {
+    const ink = p[4], acc = p[5], acc2 = p[6];
+    const st = 'stroke="' + ink + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"';
+    const body = [
+      '<g transform="rotate(-18 24 24)"><path d="M4 27L44 8L32 41L24 30Z" fill="' + acc2 + '" ' + st + '/><path d="M24 30L44 8L21 24Z" fill="' + acc + '" ' + st + '/></g>',
+      '<g ' + st + ' fill="#ffffff"><circle cx="15" cy="28" r="9"/><circle cx="26" cy="22" r="11"/><circle cx="35" cy="29" r="8"/><rect x="15" y="29" width="20" height="8" stroke="none"/><path d="M15 37H35" fill="none"/></g><circle cx="22" cy="27" r="1.6" fill="' + ink + '"/><circle cx="30" cy="27" r="1.6" fill="' + ink + '"/><path d="M24 31Q26 33 28 31" fill="none" ' + st + '/>',
+      '<path d="M24 4L29.5 17.5L44 18.5L33 28L36.5 42L24 34.5L11.5 42L15 28L4 18.5L18.5 17.5Z" fill="' + acc2 + '" ' + st + '/>',
+      '<path d="M24 41C6 29 8 12 17 11C21 10.5 24 15 24 15C24 15 27 10.5 31 11C40 12 42 29 24 41Z" fill="' + acc + '" ' + st + '/>',
+      '<circle cx="24" cy="24" r="10" fill="' + acc2 + '" ' + st + '/><path d="M24 4V9M24 39V44M4 24H9M39 24H44M10 10L13.5 13.5M34.5 34.5L38 38M38 10L34.5 13.5M13.5 34.5L10 38" fill="none" ' + st + '/>',
+      '<path d="M32 6C20 8 14 18 18 29C21 38 31 42 41 37C33 36 28 29 28 22C28 15 30 10 32 6Z" fill="' + acc2 + '" ' + st + '/><path d="M38 11L39.4 14.6L43 16L39.4 17.4L38 21L36.6 17.4L33 16L36.6 14.6Z" fill="' + acc + '"/>'
+    ];
+    return '<svg viewBox="0 0 48 48" aria-hidden="true">' + body[k] + "</svg>";
+  }
+
+  function bgSvg(d, p, R, anim) {
+    const id = "fc" + ++uid;
+    const pt = pattern(d.pat, p[6], p[5], R);
+    const rot = [0, 14, -14, 28][Math.floor(d.i / 50) % 4];
+    const y = 60 + R() * 50;
+    const b1 = '<circle cx="' + (40 + R() * 280).toFixed(0) + '" cy="' + (330 + R() * 150).toFixed(0) + '" r="' + (60 + R() * 50).toFixed(0) + '" fill="' + p[5] + '" opacity=".22"/>';
+    const b2 = '<circle cx="' + (R() * 360).toFixed(0) + '" cy="' + (R() * 120).toFixed(0) + '" r="' + (40 + R() * 40).toFixed(0) + '" fill="' + p[6] + '" opacity=".35"/>';
+    const trail = '<path d="M-10 ' + y.toFixed(0) + 'C90 ' + (y - 80).toFixed(0) + ' 200 ' + (y + 60).toFixed(0) + ' 380 ' + (y - 60).toFixed(0) + '" fill="none" stroke="' + p[8] + '" stroke-width="2" stroke-dasharray="1 9" stroke-linecap="round" opacity=".55"/>';
+    return '<svg class="fc-bg" viewBox="0 0 360 510" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>' +
+      '<linearGradient id="' + id + 'g" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="' + p[1] + '"/><stop offset="1" stop-color="' + p[2] + '"/></linearGradient>' +
+      '<pattern id="' + id + 'p" width="' + pt[0] + '" height="' + pt[1] + '" patternUnits="userSpaceOnUse" patternTransform="rotate(' + rot + ')">' + pt[2] +
+      (anim ? '<animateTransform attributeName="patternTransform" type="translate" additive="sum" from="0 0" to="' + pt[0] + " " + pt[1] + '" dur="' + (14 + (d.i % 7) * 3) + 's" repeatCount="indefinite"/>' : "") +
+      "</pattern></defs>" +
+      '<rect width="360" height="510" fill="url(#' + id + 'g)"/>' + b1 + b2 +
+      '<rect width="360" height="510" fill="url(#' + id + 'p)" opacity=".5"/>' + trail + "</svg>";
+  }
+
+  /* o: {design, name, goal, quote:[text,author,role], date, minutes, code} */
+  function render(o) {
+    const d = design(o.design);
+    const p = FF_PALETTES[d.pal];
+    const R = rng(d.i * 9973 + 17);
+    const wrap = document.createElement("div");
+    wrap.className = "cardwrap";
+    const card = document.createElement("div");
+    card.className = "fcard f" + d.frame;
+    const vars = { "--c-plate": p[3], "--c-ink": p[4], "--c-acc": p[5], "--c-acc2": p[6], "--c-edge": p[7], "--c-on": p[8], "--c-paper": p[9] };
+    for (const k in vars) card.style.setProperty(k, vars[k]);
+
+    const q = o.quote || FF_QUOTES[0];
+    const qlen = q[0].length;
+    const qsize = qlen > 100 ? 0.84 : qlen > 70 ? 0.94 : 1.06;
+    const goal = o.goal || "Something wonderful";
+    const name = (o.name || "").trim() || "Dear Traveler";
+    const qcls = ["q-serif", "q-hand", "q-sans"][d.qfont];
+
+    const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    card.innerHTML = bgSvg(d, p, R, !still) +
+      '<div class="fc-body">' +
+      '<div class="fc-top"><span>Focus Flight</span><span>No. ' + (d.i + 1) + " / 500</span></div>" +
+      '<div class="fc-title">' + esc(FF_TITLES[d.title]) + "</div>" +
+      '<div class="fc-name"><span>awarded to</span><b>' + esc(name) + "</b></div>" +
+      '<div class="fc-plate"><div class="fc-stk s' + d.sticker + '">' + sticker(d.sticker, p) + "</div>" +
+      '<div class="fc-k">Target reached</div><div class="fc-goal">' + esc(goal.length > 90 ? goal.slice(0, 88) + "…" : goal) + "</div>" +
+      '<blockquote class="fc-q ' + qcls + '" style="--qs:' + qsize + '">' + esc(q[0]) + "</blockquote>" +
+      '<div class="fc-by"><b>' + esc(q[1]) + "</b><span>" + esc(q[2]) + "</span></div></div>" +
+      '<div class="fc-foot"><span>' + esc(o.date || "") + (o.minutes ? " · " + o.minutes + " min" : "") + "</span><span>" + esc(o.code || "FF-0000-MOON") + "</span></div></div>";
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  /* ---------- PNG export: draws the same design on a canvas ---------- */
+  function loadImg(svg) {
+    return new Promise(function (res, rej) {
+      const im = new Image();
+      im.onload = function () { res(im); };
+      im.onerror = rej;
+      im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" '));
+    });
+  }
+  function wrapText(ctx, text, maxW) {
+    const words = String(text).split(/\s+/), lines = [];
+    let line = "";
+    words.forEach(function (w) {
+      const t = line ? line + " " + w : w;
+      if (line && ctx.measureText(t).width > maxW) { lines.push(line); line = w; } else line = t;
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+  function rrPath(ctx, x, y, w, h, r) {
+    const a = typeof r === "number" ? [r, r, r, r] : r;
+    ctx.moveTo(x + a[0], y);
+    ctx.lineTo(x + w - a[1], y); ctx.arcTo(x + w, y, x + w, y + a[1], a[1]);
+    ctx.lineTo(x + w, y + h - a[2]); ctx.arcTo(x + w, y + h, x + w - a[2], y + h, a[2]);
+    ctx.lineTo(x + a[3], y + h); ctx.arcTo(x, y + h, x, y + h - a[3], a[3]);
+    ctx.lineTo(x, y + a[0]); ctx.arcTo(x, y, x + a[0], y, a[0]);
+    ctx.closePath();
+  }
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    const c = function (s) { return Math.round(((n >> s) & 255) * f); };
+    return "rgb(" + c(16) + "," + c(8) + "," + c(0) + ")";
+  }
+  function setLS(ctx, px) { if ("letterSpacing" in ctx) ctx.letterSpacing = px + "px"; }
+
+  async function exportPng(o) {
+    const W = 1080, H = Math.round(W * 4.25 / 3), u = W / 100, base = 4.2 * u;
+    const d = design(o.design), p = FF_PALETTES[d.pal], R = rng(d.i * 9973 + 17);
+    const q = o.quote || FF_QUOTES[0];
+    const bg = await loadImg(bgSvg(d, p, R));
+    const stk = await loadImg(sticker(d.sticker, p));
+    try {
+      await Promise.all(['700 40px "Caveat"', '400 40px "Bagel Fat One"', '500 40px "DM Mono"', '700 40px "Figtree"', '600 40px "Figtree"', 'italic 500 40px "Fraunces"'].map(function (f) { return document.fonts.load(f); }));
+    } catch (e) {}
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d");
+    const f = d.frame, bw = ({ 0: 1.8, 2: 1.4, 3: 3.6 })[f] || 0, b = bw * u;
+    const outerR = [8 * u, 3 * u, [50 * u, 50 * u, 7 * u, 7 * u], 2 * u, 4 * u][f];
+    const innerR = f === 0 ? 6.2 * u : f === 2 ? [48.6 * u, 48.6 * u, 5.6 * u, 5.6 * u] : f === 3 ? 0 : outerR;
+
+    /* outer shape */
+    ctx.beginPath();
+    rrPath(ctx, 0, 0, W, H, outerR);
+    let rule = "nonzero";
+    if (f === 1) {
+      [0, W].forEach(function (cx) { ctx.moveTo(cx + 4.6 * u, H * 0.67); ctx.arc(cx, H * 0.67, 4.6 * u, 0, Math.PI * 2); });
+      rule = "evenodd";
+    }
+    ctx.save();
+    ctx.clip(rule);
+    ctx.fillStyle = f === 3 ? p[9] : f === 1 ? p[3] : p[7];
+    ctx.fillRect(0, 0, W, H);
+    /* inner area with the background art */
+    ctx.save();
+    ctx.beginPath();
+    rrPath(ctx, b, b, W - 2 * b, H - 2 * b, innerR);
+    ctx.clip();
+    ctx.drawImage(bg, b, b, W - 2 * b, H - 2 * b);
+    ctx.restore();
+    if (f === 0) {
+      ctx.save(); ctx.beginPath(); rrPath(ctx, b + .5 * u, b + .5 * u, W - 2 * b - u, H - 2 * b - u, 5 * u);
+      ctx.strokeStyle = p[8]; ctx.globalAlpha = .5; ctx.lineWidth = .5 * u; ctx.setLineDash([1.4 * u, 1 * u]); ctx.stroke(); ctx.restore();
+    }
+
+    /* layout */
+    const x0 = b, iw = W - 2 * b, padX = 7 * u, left = x0 + padX, maxW = iw - 2 * padX;
+    const center = f === 2, textAnchor = center ? x0 + iw / 2 : left;
+    ctx.textAlign = center ? "center" : "left";
+    ctx.textBaseline = "alphabetic";
+    let y = b + (f === 2 ? 15 : 7) * u;
+
+    /* top row */
+    let s = 0.72 * base;
+    ctx.font = '500 ' + s + 'px "DM Mono", monospace'; ctx.fillStyle = p[8]; setLS(ctx, s * .14);
+    const brand = "FOCUS FLIGHT", num = "NO. " + (d.i + 1) + " / 500";
+    if (center) { ctx.fillText(brand + "   " + num, textAnchor, y + s); }
+    else { ctx.fillText(brand, left, y + s); ctx.textAlign = "right"; ctx.fillText(num, x0 + iw - padX, y + s); ctx.textAlign = "left"; }
+    y += s * 1.3 + 2.6 * u;
+    setLS(ctx, 0);
+
+    /* title */
+    s = 2.05 * base;
+    ctx.font = '400 ' + s + 'px "Bagel Fat One", sans-serif'; ctx.fillStyle = p[8];
+    wrapText(ctx, FF_TITLES[d.title], maxW).forEach(function (ln) { ctx.fillText(ln, textAnchor, y + s * .9); y += s * 1.02; });
+    y += 2.6 * u;
+
+    /* name */
+    const label = "AWARDED TO", ls = 0.66 * base, ns = 2.3 * base;
+    const name = (o.name || "").trim() || "Dear Traveler";
+    ctx.font = '500 ' + ls + 'px "DM Mono", monospace'; setLS(ctx, ls * .12);
+    const lw = ctx.measureText(label).width; setLS(ctx, 0);
+    ctx.font = '700 ' + ns + 'px Caveat, cursive';
+    const nameLines = wrapText(ctx, name, maxW), nw = ctx.measureText(nameLines[0]).width;
+    const oneLine = nameLines.length === 1 && lw + 2 * u + nw <= maxW;
+    const total = oneLine ? lw + 2 * u + nw : 0;
+    const sx = center ? x0 + iw / 2 - total / 2 : left;
+    ctx.textAlign = "left";
+    if (oneLine) {
+      ctx.font = '500 ' + ls + 'px "DM Mono", monospace'; setLS(ctx, ls * .12); ctx.fillText(label, sx, y + ns * .8); setLS(ctx, 0);
+      ctx.font = '700 ' + ns + 'px Caveat, cursive'; ctx.fillText(nameLines[0], sx + lw + 2 * u, y + ns * .8);
+      y += ns * 1.05;
+    } else {
+      ctx.textAlign = center ? "center" : "left";
+      ctx.font = '500 ' + ls + 'px "DM Mono", monospace'; setLS(ctx, ls * .12); ctx.fillText(label, textAnchor, y + ls); setLS(ctx, 0); y += ls * 1.5;
+      ctx.font = '700 ' + ns + 'px Caveat, cursive';
+      nameLines.forEach(function (ln) { ctx.fillText(ln, textAnchor, y + ns * .8); y += ns * 1.05; });
+    }
+
+    /* footer */
+    const fs = 0.66 * base, footY = H - b - 6 * u;
+    ctx.font = '400 ' + fs + 'px "DM Mono", monospace'; ctx.fillStyle = p[8]; setLS(ctx, fs * .06);
+    ctx.textAlign = "left"; ctx.fillText((o.date || "") + (o.minutes ? " · " + o.minutes + " min" : ""), left, footY);
+    ctx.textAlign = "right"; ctx.fillText(o.code || "", x0 + iw - padX, footY);
+    setLS(ctx, 0); ctx.textAlign = "left";
+
+    /* plate */
+    const pt = y + 2.6 * u + 3 * u, pb = footY - fs * 1.3 - 2.6 * u, ph = pb - pt, pw = maxW, pl = left, pad = 5 * u, tw = pw - 2 * pad;
+    ctx.beginPath(); rrPath(ctx, pl, pt + 1.2 * u, pw, ph, 5 * u); ctx.fillStyle = p[7]; ctx.fill();
+    ctx.beginPath(); rrPath(ctx, pl, pt, pw, ph, 5 * u); ctx.fillStyle = p[3]; ctx.fill();
+    ctx.fillStyle = p[4];
+    let py = pt + pad;
+    const ks = 0.62 * base;
+    ctx.font = '500 ' + ks + 'px "DM Mono", monospace'; ctx.fillStyle = shade(p[5], .82); setLS(ctx, ks * .14);
+    ctx.fillText("TARGET REACHED", pl + pad, py + ks); setLS(ctx, 0); py += ks * 1.4 + 1.2 * u;
+    const gs = 1.02 * base;
+    ctx.font = '700 ' + gs + 'px Figtree, sans-serif'; ctx.fillStyle = p[4];
+    const goal = o.goal || "Something wonderful";
+    wrapText(ctx, goal.length > 90 ? goal.slice(0, 88) + "…" : goal, tw - 11 * u).forEach(function (ln) { ctx.fillText(ln, pl + pad, py + gs); py += gs * 1.2; });
+    py += 1 * u;
+    /* author block at the bottom */
+    const as = 0.78 * base, byH = as * 2.5, byTop = pb - 4 * u - byH;
+    ctx.font = '700 ' + as + 'px Figtree, sans-serif'; ctx.fillStyle = p[4];
+    ctx.fillText(q[1], pl + pad, byTop + as);
+    ctx.globalAlpha = .75; ctx.font = '400 ' + as + 'px Figtree, sans-serif'; ctx.fillText(q[2], pl + pad, byTop + as * 2.25); ctx.globalAlpha = 1;
+    /* quote, centred in the space left */
+    const qlen = q[0].length, qs = qlen > 100 ? .84 : qlen > 70 ? .94 : 1.06;
+    const fam = d.qfont, area = byTop - 2 * u - py;
+    let qsz = (fam === 1 ? 1.55 : 1.2) * base * qs, lines, lh;
+    const lhk = fam === 1 ? 1.12 : 1.28;
+    for (let t = 0; t < 8; t++) {
+      ctx.font = (fam === 0 ? 'italic 500 ' + qsz + 'px Fraunces, Georgia, serif' : fam === 1 ? '700 ' + qsz + 'px Caveat, cursive' : '600 ' + qsz + 'px Figtree, sans-serif');
+      lines = wrapText(ctx, q[0], tw); lh = qsz * lhk;
+      if (lines.length * lh <= area) break;
+      qsz *= .92;
+    }
+    let qy = py + Math.max(0, (area - lines.length * lh) / 2);
+    lines.forEach(function (ln) { ctx.fillText(ln, pl + pad, qy + qsz * .95); qy += lh; });
+
+    /* sticker */
+    ctx.save();
+    ctx.translate(pl + pw - 10.5 * u, pt + 1 * u);
+    ctx.rotate(9 * Math.PI / 180);
+    ctx.shadowColor = "#fff"; ctx.shadowBlur = 1.6 * u;
+    ctx.drawImage(stk, -7.5 * u, -7.5 * u, 15 * u, 15 * u);
+    ctx.drawImage(stk, -7.5 * u, -7.5 * u, 15 * u, 15 * u);
+    ctx.restore();
+
+    /* washi tape */
+    if (f === 4) {
+      [[7 * u, 7 * u, -38], [W - 7 * u, 7 * u, 38]].forEach(function (t) {
+        ctx.save(); ctx.translate(t[0], t[1]); ctx.rotate(t[2] * Math.PI / 180);
+        ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(-13 * u, -3.5 * u, 26 * u, 7 * u); ctx.restore();
+      });
+    }
+    ctx.restore();
+    return new Promise(function (res) { cv.toBlob(res, "image/png"); });
+  }
+
+  function describe(i) {
+    const d = design(i);
+    return { palette: FF_PALETTES[d.pal][0], pattern: FF_PATTERNS[d.pat], frame: FF_FRAMES[d.frame] };
+  }
+
+  return { render: render, describe: describe, exportPng: exportPng, total: TOTAL, esc: esc };
+})();
+
+/* Core helpers: storage, pass numbers, barcode, sound, confetti */
+const FF = (function () {
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    remove(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+
+  function hash(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+
+  /* pick a number that has not been used yet, until all are used, then start over */
+  function pickUnseen(total, key) {
+    let seen = store.get(key, []);
+    if (!Array.isArray(seen) || seen.length >= total) seen = [];
+    let n;
+    do { n = Math.floor(Math.random() * total); } while (seen.indexOf(n) !== -1);
+    seen.push(n);
+    store.set(key, seen);
+    return n;
+  }
+
+  function code3(goal) {
+    const w = String(goal).replace(/[^A-Za-z\s]/g, " ").trim().split(/\s+/).filter(Boolean);
+    if (!w.length) return "WIN";
+    const c = w.length >= 3 ? w.slice(0, 3).map(function (x) { return x[0]; }).join("") : w.join("");
+    return (c + "XYZ").slice(0, 3).toUpperCase();
+  }
+
+  function newPass(log, info) {
+    const L = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    let code, h;
+    do {
+      h = hash(Date.now() + ":" + Math.random() + ":" + Math.random());
+      code = "FF-" + (1000 + (h % 9000)) + "-" + FF_WORDS[(h >>> 8) % FF_WORDS.length] + "-" + L[(h >>> 16) % L.length] + L[(h >>> 21) % L.length];
+    } while (log.some(function (p) { return p.code === code; }));
+    const h2 = hash(code + "seat");
+    return {
+      id: code,
+      code: code,
+      name: info.name || "",
+      goal: info.goal,
+      minutes: info.minutes,
+      finishedAt: Date.now(),
+      design: pickUnseen(FFCard.total, "ff.seenD"),
+      quote: pickUnseen(FF_QUOTES.length, "ff.seenQ"),
+      flight: "FF " + (100 + (h2 % 900)),
+      gate: "ABCDGK"[(h2 >>> 4) % 6] + (1 + ((h2 >>> 9) % 24)),
+      seat: (1 + ((h2 >>> 13) % 38)) + "ABCDEF"[(h2 >>> 20) % 6]
+    };
+  }
+
+  function barcode(seed) {
+    let h = hash(seed), x = 0, out = "";
+    for (let i = 0; i < 40; i++) {
+      h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+      const w = 1 + ((h >>> 28) % 3), gap = 1 + ((h >>> 24) % 2);
+      out += '<rect x="' + x + '" y="0" width="' + w + '" height="40"/>';
+      x += w + gap;
+    }
+    return '<svg class="bar" viewBox="0 0 ' + x + ' 40" preserveAspectRatio="none" fill="currentColor" aria-hidden="true">' + out + "</svg>";
+  }
+
+  const Snd = {
+    ctx: null, node: null,
+    ensure() {
+      if (this.ctx) return this.ctx;
+      const A = window.AudioContext || window.webkitAudioContext;
+      if (!A) return null;
+      const c = new A(), n = c.sampleRate * 3;
+      const wb = c.createBuffer(1, n, c.sampleRate), bb = c.createBuffer(1, n, c.sampleRate);
+      const w = wb.getChannelData(0), b = bb.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < n; i++) { const r = Math.random() * 2 - 1; w[i] = r; last = (last + 0.02 * r) / 1.02; b[i] = last * 3.5; }
+      this.white = wb; this.brown = bb; this.ctx = c;
+      return c;
+    },
+    set(mode) {
+      if (this.node) { try { this.node.stop(); } catch (e) {} try { this.node.disconnect(); } catch (e) {} this.node = null; }
+      if (mode === "off") return;
+      const c = this.ensure();
+      if (!c) return;
+      if (c.state === "suspended") c.resume();
+      const src = c.createBufferSource(), g = c.createGain();
+      src.buffer = mode === "rain" ? this.white : this.brown;
+      src.loop = true;
+      if (mode === "rain") {
+        const hp = c.createBiquadFilter(), lp = c.createBiquadFilter();
+        hp.type = "highpass"; hp.frequency.value = 900; lp.type = "lowpass"; lp.frequency.value = 7000;
+        g.gain.value = 0.1; src.connect(hp); hp.connect(lp); lp.connect(g);
+      } else {
+        const lp = c.createBiquadFilter();
+        lp.type = "lowpass"; lp.frequency.value = 380; g.gain.value = 0.35; src.connect(lp); lp.connect(g);
+      }
+      g.connect(c.destination);
+      src.start();
+      this.node = src;
+    },
+    chime() {
+      try {
+        const c = this.ensure();
+        if (!c) return;
+        if (c.state === "suspended") c.resume();
+        const t = c.currentTime;
+        [659.25, 783.99, 1046.5].forEach(function (f, i) {
+          const o = c.createOscillator(), g = c.createGain(), s = t + i * 0.18;
+          o.type = "sine"; o.frequency.value = f;
+          g.gain.setValueAtTime(0, s);
+          g.gain.linearRampToValueAtTime(0.16, s + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0001, s + 0.9);
+          o.connect(g); g.connect(c.destination);
+          o.start(s); o.stop(s + 1);
+        });
+      } catch (e) {}
+    }
+  };
+
+  function confetti() {
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cv = document.getElementById("confetti"), cx = cv.getContext("2d"), dpr = window.devicePixelRatio || 1;
+    const W = window.innerWidth, H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; cx.scale(dpr, dpr);
+    const cols = ["#ff7a6b", "#ffd166", "#87e0c3", "#c1b2ff", "#7ec8ff"];
+    const ps = [];
+    for (let i = 0; i < 140; i++) {
+      ps.push({ x: W / 2, y: H * 0.45, vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 14 - 4, r: Math.random() * 5 + 3, c: cols[(Math.random() * 5) | 0], a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4 });
+    }
+    let f = 0;
+    (function step() {
+      cx.clearRect(0, 0, W, H);
+      ps.forEach(function (p) {
+        p.vy += 0.35; p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.a += p.va;
+        cx.save(); cx.translate(p.x, p.y); cx.rotate(p.a); cx.fillStyle = p.c; cx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); cx.restore();
+      });
+      if (++f < 130) requestAnimationFrame(step); else cx.clearRect(0, 0, W, H);
+    })();
+  }
+
+  return { store: store, hash: hash, code3: code3, newPass: newPass, barcode: barcode, Snd: Snd, confetti: confetti };
+})();
+
+/* Animated sky: clouds and stars are made once at load */
+(function () {
+  const C = document.getElementById("clouds"), S = document.getElementById("stars");
+  if (!C || !S) return;
+  const rnd = function (a, b) { return a + Math.random() * (b - a); };
+  const cloud = '<svg viewBox="0 0 160 80" aria-hidden="true"><circle cx="45" cy="52" r="24"/><circle cx="82" cy="38" r="32"/><circle cx="125" cy="50" r="26"/><rect x="45" y="50" width="80" height="28" rx="14"/></svg>';
+  for (let i = 0; i < 6; i++) {
+    const s = rnd(0.6, 1.6), d = document.createElement("div");
+    d.className = "cloud";
+    d.style.top = rnd(2, 76).toFixed(0) + "%";
+    d.style.setProperty("--s", s.toFixed(2));
+    d.style.setProperty("--o", rnd(0.22, 0.55).toFixed(2));
+    d.style.setProperty("--dur", (200 - s * 70).toFixed(0) + "s");
+    d.style.setProperty("--delay", "-" + rnd(0, 150).toFixed(0) + "s");
+    d.style.setProperty("--x", rnd(0, 85).toFixed(0) + "vw");
+    d.innerHTML = cloud;
+    C.appendChild(d);
+  }
+  /* two cheap star layers (one element each, many shadows) that twinkle out of step */
+  ["a", "b"].forEach(function (k) {
+    const L = document.createElement("span");
+    L.className = "stl " + k;
+    const sh = [];
+    for (let i = 0; i < 24; i++) sh.push(rnd(0, 100).toFixed(1) + "vw " + rnd(0, 92).toFixed(1) + "vh 0 " + rnd(0, 0.9).toFixed(1) + "px #fff");
+    L.style.boxShadow = sh.join(",");
+    S.appendChild(L);
+  });
+})();
+
+/* App: timer, stages, boarding pass, card overlay, passport, gallery */
+(function () {
+  "use strict";
+  const $ = function (s, r) { return (r || document).querySelector(s); };
+  const esc = FFCard.esc;
+  const store = FF.store;
+  const Snd = FF.Snd;
+  const BASE_TITLE = "Focus Flight";
+
+  const S = {
+    name: store.get("ff.name", ""),
+    log: store.get("ff.log", []),
+    cur: store.get("ff.cur", null),
+    snd: store.get("ff.snd", "off"),
+    fsPref: store.get("ff.fs", false), fs: false, apiOn: false,
+    timer: null, stage: "idle", pass: null, open: null, galIdx: 0, wl: null, lastDigits: ""
+  };
+  if (!Array.isArray(S.log)) S.log = [];
+
+  /* ---------- helpers ---------- */
+  const pad = function (n) { return String(n).padStart(2, "0"); };
+  const fmtDate = function (t) { return new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); };
+  const fmtTime = function (t) { return new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
+  const dayKey = function (t) { return new Date(t).toLocaleDateString("en-CA"); };
+  let toastT = 0;
+  function toast(msg) {
+    const el = $("#toast");
+    el.textContent = msg; el.hidden = false;
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { el.hidden = true; }, 3400);
+  }
+  function saveCur() { if (S.cur) store.set("ff.cur", S.cur); else store.remove("ff.cur"); }
+
+  function stats() {
+    const tk = dayKey(Date.now());
+    const today = S.log.filter(function (p) { return dayKey(p.finishedAt) === tk; });
+    const days = new Set(S.log.map(function (p) { return dayKey(p.finishedAt); }));
+    let streak = 0;
+    const d = new Date();
+    if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+    while (days.has(dayKey(d))) { streak++; d.setDate(d.getDate() - 1); }
+    const total = S.log.reduce(function (a, p) { return a + p.minutes; }, 0);
+    const best = S.log.reduce(function (a, p) { return Math.max(a, p.minutes); }, 0);
+    return {
+      flights: S.log.length, total: total, best: best, streak: streak,
+      todayN: today.length, todayMin: today.reduce(function (a, p) { return a + p.minutes; }, 0)
+    };
+  }
+
+  /* ---------- views and stages ---------- */
+  function stage(n) {
+    ["idle", "flight", "approach", "landed"].forEach(function (k) { $("#s-" + k).hidden = k !== n; });
+    S.stage = n;
+    if (n === "idle") refreshIdle();
+  }
+  function setView(v) {
+    ["fly", "passport", "gallery"].forEach(function (k) {
+      $("#view-" + k).hidden = k !== v;
+      $("#tab-" + k).setAttribute("aria-selected", String(k === v));
+    });
+    if (v === "passport") renderPassport();
+    if (v === "gallery") paintGallery();
+  }
+  function refreshIdle() {
+    const s = stats();
+    $("#i-today").textContent = s.todayN;
+    $("#i-min").textContent = s.todayMin;
+    $("#i-streak").textContent = s.streak;
+  }
+
+  /* ---------- wake lock ---------- */
+  async function lock() {
+    try { if ("wakeLock" in navigator && !S.wl) { S.wl = await navigator.wakeLock.request("screen"); S.wl.addEventListener("release", function () { S.wl = null; }); } } catch (e) {}
+  }
+  function unlock() { try { if (S.wl) S.wl.release(); } catch (e) {} S.wl = null; }
+
+  /* ---------- full screen focus mode ---------- */
+  function setFocus(on, useApi) {
+    S.fs = on;
+    document.body.classList.toggle("focusmode", on);
+    $("#b-full").textContent = on ? "Exit full screen" : "Full screen";
+    if (!useApi) return;
+    try {
+      if (on && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().then(function () { S.apiOn = true; }, function () {});
+      } else if (!on && document.fullscreenElement) {
+        S.apiOn = false;
+        document.exitFullscreen().catch(function () {});
+      }
+    } catch (e) {}
+  }
+  document.addEventListener("fullscreenchange", function () {
+    /* the person pressed Esc to leave browser full screen: go back to the normal layout too */
+    if (!document.fullscreenElement && S.apiOn) {
+      S.apiOn = false;
+      if (S.fs) { S.fsPref = false; store.set("ff.fs", false); setFocus(false, false); }
+    }
+  });
+
+  /* ---------- flight ---------- */
+  function startFlight(goal, minutes, kind) {
+    const ms = minutes * 60000, now = Date.now();
+    S.cur = { kind: kind || "focus", goal: goal, total: ms, startedAt: now, endAt: now + ms, paused: false, remaining: ms, phase: "flying", early: false, notes: [] };
+    saveCur();
+    enterFlight(true);
+  }
+  function enterFlight(gesture) {
+    const c = S.cur;
+    stage("flight");
+    $("#fl-goal").textContent = c.goal;
+    $("#fl-to").textContent = c.kind === "layover" ? "REST" : FF.code3(c.goal);
+    $("#sel-sound").value = S.snd;
+    if (gesture && S.snd !== "off") Snd.set(S.snd);
+    setFocus(S.fsPref, gesture && S.fsPref);
+    $("#parked").replaceChildren();
+    (c.notes || []).forEach(addNoteEl);
+    $("#b-pause").textContent = c.paused ? "Resume" : "Pause";
+    $("#flight-panel").classList.toggle("paused", !!c.paused);
+    S.lastDigits = "";
+    lock();
+    clearInterval(S.timer);
+    S.timer = setInterval(tick, 250);
+    tick();
+  }
+  function remainingMs() {
+    const c = S.cur;
+    return c.paused ? c.remaining : Math.max(0, c.endAt - Date.now());
+  }
+  function tick() {
+    const c = S.cur;
+    if (!c || c.phase !== "flying") return;
+    const rem = remainingMs();
+    paint(rem);
+    if (!c.paused && rem <= 0) finish();
+  }
+  const scene = { len: 0 };
+  function paint(rem) {
+    const c = S.cur;
+    const t = Math.ceil(rem / 1000), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    const parts = h ? [String(h), pad(m), pad(s)] : [pad(m), pad(s)];
+    const html = parts.map(function (p) { return p.split("").map(function (ch) { return '<span class="d">' + ch + "</span>"; }).join(""); }).join('<span class="s">:</span>');
+    if (html !== S.lastDigits) {
+      $("#digits").innerHTML = html;
+      S.lastDigits = html;
+      $("#digits").setAttribute("aria-label", parts.join(" : ") + " remaining");
+      document.title = parts.join(":") + " · " + BASE_TITLE;
+    }
+    $("#fl-eta").textContent = c.paused ? "when you resume" : fmtTime(c.endAt);
+    const p = Math.min(1, Math.max(0, 1 - rem / c.total));
+    const track = $("#track");
+    if (!scene.len) scene.len = track.getTotalLength();
+    const q = Math.min(p, 0.985);
+    const a = track.getPointAtLength(scene.len * p);
+    const b0 = track.getPointAtLength(scene.len * q), b1 = track.getPointAtLength(scene.len * (q + 0.015));
+    const ang = (Math.atan2(b1.y - b0.y, b1.x - b0.x) * 180) / Math.PI;
+    $("#plane").setAttribute("transform", "translate(" + a.x.toFixed(1) + " " + (a.y - 4).toFixed(1) + ") rotate(" + ang.toFixed(1) + ")");
+    $("#trail").setAttribute("stroke-dasharray", p.toFixed(4) + " 1");
+  }
+  function endCur() {
+    S.cur = null; saveCur();
+    clearInterval(S.timer);
+    document.title = BASE_TITLE;
+    Snd.set("off");
+    unlock();
+    setFocus(false, true);
+  }
+  function finish() {
+    const c = S.cur;
+    Snd.chime();
+    if (c.kind === "layover") {
+      endCur(); stage("idle");
+      toast("Layover over. Ready for your next flight?");
+      return;
+    }
+    c.phase = "approach"; c.early = false; saveCur();
+    showApproach();
+  }
+  function showApproach() {
+    const c = S.cur;
+    clearInterval(S.timer);
+    Snd.set("off");
+    setFocus(false, true);
+    document.title = "Final approach · " + BASE_TITLE;
+    stage("approach");
+    $("#ap-eye").textContent = c.early ? "Landing early" : "Final approach";
+    $("#ap-title").textContent = c.early ? "Did you already reach your destination?" : "Time is up. Did you reach your destination?";
+    $("#ap-goal").textContent = c.goal;
+    $("#b-more").textContent = c.early ? "Keep flying" : "Need 10 more minutes";
+    const ul = $("#ap-notes");
+    ul.replaceChildren();
+    (c.notes || []).forEach(function (n) { const li = document.createElement("li"); li.textContent = n; ul.appendChild(li); });
+    if ((c.notes || []).length) { const li = document.createElement("li"); li.style.cssText = "border-style:solid;background:transparent"; li.textContent = "Parked thoughts, ready for you now"; ul.insertBefore(li, ul.firstChild); }
+  }
+  function addNoteEl(text) {
+    const li = document.createElement("li");
+    li.textContent = text;
+    $("#parked").appendChild(li);
+  }
+
+  /* ---------- boarding pass ---------- */
+  function buildPass(p) {
+    const el = document.createElement("article");
+    el.className = "pass";
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", "Boarding pass " + p.code + ". Open your surprise card");
+    const parts = p.code.split("-");
+    el.innerHTML =
+      '<div class="pass-main">' +
+      '<div class="pass-head"><span class="pass-air">Air Focus</span><span>Boarding pass</span></div>' +
+      '<div class="pass-route"><div><small>From</small><b>NOW</b></div>' +
+      '<svg class="pass-plane" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden="true"><path d="M2 12H96" stroke="currentColor" stroke-width="2.5" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/><path d="M98 12L82 4L86 12L82 20Z" fill="currentColor" transform="translate(16 0)"/></svg>' +
+      '<div><small>To</small><b>' + esc(FF.code3(p.goal)) + "</b></div></div>" +
+      '<div class="pf">' +
+      '<div class="span2"><span class="k">Passenger</span><b>' + esc(p.name || "Guest traveler") + "</b></div>" +
+      '<div class="span2"><span class="k">Destination</span><b>' + esc(p.goal) + "</b></div>" +
+      '<div><span class="k">Flight</span><b>' + p.flight + '</b></div><div><span class="k">Gate</span><b>' + p.gate + '</b></div><div><span class="k">Seat</span><b>' + p.seat + "</b></div>" +
+      '<div><span class="k">Flight time</span><b>' + p.minutes + ' min</b></div><div><span class="k">Date</span><b>' + fmtDate(p.finishedAt) + '</b></div><div><span class="k">Landed</span><b>' + fmtTime(p.finishedAt) + "</b></div>" +
+      "</div></div>" +
+      '<div class="pass-stub"><span class="k">Pass number</span><div class="pn">' + parts[1] + '</div><div class="pw">' + parts[2] + " · " + parts[3] + "</div>" + FF.barcode(p.code) + '<span class="tap">Tap to open your surprise card</span></div>';
+    el.addEventListener("click", function () { openCard(p); });
+    el.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCard(p); } });
+    return el;
+  }
+  function showLanded(p) {
+    S.pass = p;
+    stage("landed");
+    $("#pass-slot").replaceChildren(buildPass(p));
+  }
+  function complete() {
+    const c = S.cur;
+    const rem = c.early ? c.remaining : 0;
+    const minutes = Math.max(1, Math.round((c.total - rem) / 60000));
+    const p = FF.newPass(S.log, { name: S.name, goal: c.goal, minutes: minutes });
+    S.log.unshift(p);
+    store.set("ff.log", S.log);
+    endCur();
+    showLanded(p);
+    FF.confetti();
+  }
+
+  /* ---------- card overlay ---------- */
+  function cardOpts(p) {
+    return { design: p.design, name: p.name, goal: p.goal, quote: FF_QUOTES[p.quote % FF_QUOTES.length], date: fmtDate(p.finishedAt), minutes: p.minutes, code: p.code };
+  }
+  function paintCard() { $("#ov-card").replaceChildren(FFCard.render(cardOpts(S.open))); }
+  function openCard(p) {
+    S.open = p;
+    paintCard();
+    $("#ov-card .cardwrap").classList.add("pop");
+    $("#in-name2").value = p.name || "";
+    $("#ov-note").textContent = "Save the card as a PNG picture, or copy just the quote.";
+    $("#overlay").hidden = false;
+    prepSave();
+    FF.confetti();
+    $("#ov-close").focus({ preventScroll: true });
+  }
+  function closeCard() {
+    $("#overlay").hidden = true;
+    if (S.stage === "landed" && S.pass) $("#pass-slot").replaceChildren(buildPass(S.pass));
+    if (!$("#view-passport").hidden) renderPassport();
+  }
+  function cardText(p) {
+    const q = FF_QUOTES[p.quote % FF_QUOTES.length];
+    return "“" + q[0] + "” — " + q[1];
+  }
+
+  /* ---------- passport ---------- */
+  function renderPassport() {
+    const s = stats();
+    $("#p-flights").textContent = s.flights;
+    $("#p-hours").textContent = (s.total / 60).toFixed(1).replace(/\.0$/, "");
+    $("#p-streak").textContent = s.streak;
+    $("#p-best").textContent = s.best;
+    const box = $("#stamps");
+    box.replaceChildren();
+    S.log.slice(0, 60).forEach(function (p, i) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "stamp";
+      b.style.setProperty("--sc", "var(--st" + (FF.hash(p.code) % 4) + ")");
+      b.style.setProperty("--rot", ((FF.hash(p.code + "r") % 60) / 10 - 3).toFixed(1) + "deg");
+      b.setAttribute("aria-label", "Open card for " + p.code);
+      b.innerHTML = '<span class="t">' + fmtDate(p.finishedAt) + '</span><span class="m">' + p.minutes + '</span><span class="t">min · ' + esc(p.code.split("-")[2]) + "</span>";
+      b.addEventListener("click", function () { openCard(p); });
+      box.appendChild(b);
+    });
+    $("#p-empty").hidden = S.log.length > 0;
+    if (!S.log.length) for (let i = 0; i < 3; i++) { const e = document.createElement("div"); e.className = "stamp empty"; e.style.setProperty("--rot", (i - 1) * 2 + "deg"); e.textContent = "Your stamp"; box.appendChild(e); }
+  }
+
+  /* ---------- gallery ---------- */
+  function paintGallery() {
+    const i = S.galIdx;
+    const name = ($("#in-name").value || S.name || "").trim() || "Your Name";
+    $("#gal-card").replaceChildren(FFCard.render({
+      design: i, name: name, goal: "Your target goes right here", quote: FF_QUOTES[(i * 7) % FF_QUOTES.length],
+      date: fmtDate(Date.now()), minutes: 25, code: "FF-0000-MOON"
+    }));
+    const d = FFCard.describe(i);
+    $("#gal-no").textContent = "Design " + (i + 1) + " of 500";
+    $("#gal-desc").textContent = d.palette + " · " + d.pattern + " · " + d.frame;
+    $("#gal-range").value = i + 1;
+  }
+
+  /* ---------- wiring ---------- */
+  function syncChips() {
+    const v = Number($("#in-min").value);
+    document.querySelectorAll(".chip").forEach(function (b) { b.setAttribute("aria-pressed", String(Number(b.dataset.m) === v)); });
+  }
+
+  document.querySelectorAll(".tab").forEach(function (t) { t.addEventListener("click", function () { setView(t.dataset.view); }); });
+  document.querySelectorAll(".chip").forEach(function (b) { b.addEventListener("click", function () { $("#in-min").value = b.dataset.m; syncChips(); }); });
+  $("#in-min").addEventListener("input", syncChips);
+
+  $("#f-start").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const goal = $("#in-goal").value.trim();
+    if (!goal) return;
+    let m = Math.round(Number($("#in-min").value));
+    if (!m || m < 1) m = 25;
+    m = Math.min(240, m);
+    S.name = $("#in-name").value.trim();
+    store.set("ff.name", S.name);
+    startFlight(goal, m, "focus");
+  });
+
+  $("#b-pause").addEventListener("click", function () {
+    const c = S.cur;
+    if (!c) return;
+    if (c.paused) { c.paused = false; c.endAt = Date.now() + c.remaining; }
+    else { c.remaining = Math.max(0, c.endAt - Date.now()); c.paused = true; }
+    saveCur();
+    $("#b-pause").textContent = c.paused ? "Resume" : "Pause";
+    $("#flight-panel").classList.toggle("paused", c.paused);
+    tick();
+  });
+  $("#b-land").addEventListener("click", function () {
+    const c = S.cur;
+    if (!c) return;
+    if (c.kind === "layover") { endCur(); stage("idle"); return; }
+    c.remaining = remainingMs(); c.paused = true; c.early = true; c.phase = "approach";
+    saveCur();
+    showApproach();
+  });
+  $("#b-yes").addEventListener("click", complete);
+  $("#b-more").addEventListener("click", function () {
+    const c = S.cur;
+    if (!c) return;
+    const now = Date.now();
+    if (c.early) { c.endAt = now + c.remaining; }
+    else { c.total += 600000; c.remaining = 600000; c.endAt = now + 600000; }
+    c.paused = false; c.early = false; c.phase = "flying";
+    saveCur();
+    enterFlight(true);
+  });
+  $("#b-no").addEventListener("click", function () {
+    endCur(); stage("idle");
+    toast("No pass this time. Pick a smaller target and fly again.");
+  });
+  $("#b-open").addEventListener("click", function () { if (S.pass) openCard(S.pass); });
+  $("#b-again").addEventListener("click", function () { stage("idle"); $("#in-goal").value = ""; $("#in-goal").focus(); });
+  $("#b-layover").addEventListener("click", function () { startFlight("Stretch, sip water, look far away", 5, "layover"); });
+
+  $("#sel-sound").addEventListener("change", function (e) { S.snd = e.target.value; store.set("ff.snd", S.snd); Snd.set(S.snd); });
+  function addNote() {
+    const inp = $("#in-note"), v = inp.value.trim();
+    if (!v || !S.cur) return;
+    S.cur.notes = S.cur.notes || [];
+    S.cur.notes.push(v);
+    saveCur();
+    addNoteEl(v);
+    inp.value = "";
+    inp.focus();
+  }
+  $("#b-note").addEventListener("click", addNote);
+  $("#in-note").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addNote(); } });
+
+  /* overlay */
+  $("#ov-close").addEventListener("click", closeCard);
+  $("#overlay").addEventListener("click", function (e) { if (e.target === $("#overlay")) closeCard(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("#overlay").hidden) closeCard(); });
+  let nameT = 0;
+  $("#in-name2").addEventListener("input", function (e) {
+    if (!S.open) return;
+    S.open.name = e.target.value;
+    paintCard();
+    clearTimeout(nameT);
+    S.png = null;
+    clearTimeout(nameT);
+    nameT = setTimeout(function () { store.set("ff.log", S.log); prepSave(); }, 400);
+  });
+  $("#ov-copy").addEventListener("click", function () {
+    if (!S.open) return;
+    const text = cardText(S.open);
+    const fallback = function () {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      toast(ok ? "Quote copied" : "Copy is blocked here. Select the quote and copy it by hand.");
+    };
+    try { navigator.clipboard.writeText(text).then(function () { toast("Quote copied"); }, fallback); } catch (e) { fallback(); }
+  });
+
+  /* save the card as a PNG picture */
+  function showImage(blob, why) {
+    const img = document.createElement("img");
+    img.className = "cardimg";
+    img.alt = "Your surprise card as a picture";
+    img.src = URL.createObjectURL(blob);
+    const tip = document.createElement("div");
+    tip.className = "imgtip";
+    tip.textContent = "Press and hold the card below (on a computer, right-click it) and choose Save image.";
+    $("#ov-card").replaceChildren(tip, img);
+    $("#ov-note").textContent = why || "";
+    $("#overlay").scrollTop = 0;
+  }
+  /* plain browser download: works when the page is open as its own tab, does nothing inside a locked frame */
+  function plainDownload(blob, name) {
+    try {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {}
+  }
+  /* draw the picture and ask for the download capability ahead of the click, so the save starts inside the tap */
+  function prepSave() {
+    const p = S.open;
+    S.png = FFCard.exportPng(cardOpts(p)).catch(function () { return null; });
+    if (!S.dlP) {
+      S.dlP = (window.claude && window.claude.use ? Promise.resolve(window.claude.use("downloads")) : Promise.resolve(null)).catch(function () { return null; });
+    }
+  }
+  $("#ov-save").addEventListener("click", async function (e) {
+    if (!S.open) return;
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      if (!S.png) prepSave();
+      const blob = await S.png;
+      if (!blob) throw new Error("no image");
+      const dl = await S.dlP;
+      const fname = "focus-flight-" + S.open.code.toLowerCase() + ".png";
+      if (!dl) {
+        plainDownload(blob, fname);
+        showImage(blob, "If the file did not download, save the picture above by pressing and holding it.");
+      } else {
+        try {
+          const r = await dl.save({ filename: "focus-flight-" + S.open.code.toLowerCase() + ".png", data: blob });
+          toast(r && r.status === "delivered" ? "Card sent" : "Card saved");
+        } catch (err) {
+          const code = (err && err.code) || "unknown";
+          if (code !== "declined") showImage(blob, "Saving did not start (" + code + ").");
+        }
+      }
+    } catch (err) {
+      toast("Could not draw the card picture. Try again.");
+    }
+    btn.disabled = false;
+  });
+  $("#b-full").addEventListener("click", function () {
+    const on = !S.fs;
+    S.fsPref = on;
+    store.set("ff.fs", on);
+    setFocus(on, true);
+  });
+
+  /* passport reset */
+  let resetT = 0;
+  $("#b-reset").addEventListener("click", function (e) {
+    const b = e.currentTarget;
+    if (b.dataset.arm === "1") {
+      S.log = []; store.set("ff.log", S.log); store.remove("ff.seenD"); store.remove("ff.seenQ");
+      b.dataset.arm = ""; b.textContent = "Clear passport"; renderPassport(); return;
+    }
+    b.dataset.arm = "1"; b.textContent = "Tap again to clear everything";
+    clearTimeout(resetT);
+    resetT = setTimeout(function () { b.dataset.arm = ""; b.textContent = "Clear passport"; }, 4000);
+  });
+
+  /* gallery */
+  $("#gal-range").addEventListener("input", function (e) { S.galIdx = Number(e.target.value) - 1; paintGallery(); });
+  $("#gal-prev").addEventListener("click", function () { S.galIdx = (S.galIdx + 499) % 500; paintGallery(); });
+  $("#gal-next").addEventListener("click", function () { S.galIdx = (S.galIdx + 1) % 500; paintGallery(); });
+  $("#gal-rand").addEventListener("click", function () { S.galIdx = Math.floor(Math.random() * 500); paintGallery(); });
+  $("#in-name").addEventListener("input", function () { if (!$("#view-gallery").hidden) paintGallery(); });
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") { if (S.cur && S.cur.phase === "flying") { lock(); tick(); } }
+  });
+
+  /* boot */
+  $("#in-name").value = S.name;
+  S.galIdx = Math.floor(Math.random() * 500);
+  syncChips();
+  if (S.cur && S.cur.goal) {
+    if (S.cur.phase === "approach") showApproach(); else enterFlight(false);
+  } else {
+    S.cur = null;
+    stage("idle");
+  }
+})();
+
+</script>
+
+</body></html>
